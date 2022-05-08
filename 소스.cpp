@@ -40,7 +40,7 @@ int main_classd(int argc, char* argv[]) {
 		sdata = reinterpret_cast<short*>(data);
 		while (cnt < outl) {
 			lp -= sdata[static_cast<int>(static_cast<double>(cnt) / div)];
-			if (0 > lp) out[cnt] = 255, lp += 32767;
+			if (0 > lp) out[cnt] = 255, lp += 32768;
 			else out[cnt] = 0, lp -= 32768;
 			cnt++;
 		}
@@ -68,7 +68,7 @@ int main_classd(int argc, char* argv[]) {
 	}
 	return 0;
 }
-int main_proposed(int argc, char* argv[]) {
+int main_prop(int argc, char* argv[]) {
 	int samplingrate;
 	FILE* f;
 	if (f = fopen("config.txt", "r")) {
@@ -104,13 +104,22 @@ int main_proposed(int argc, char* argv[]) {
 		cnt = 0;
 		lp = 0;
 		sdata = reinterpret_cast<short*>(data);
+		int q = 10;
 		while (cnt < outl) {
 			lp -= sdata[static_cast<int>(static_cast<double>(cnt) / div)];
-			if (-4095 > lp) out[cnt] = 0, lp += 32767;
-			else if(0>lp)out[cnt] = 112, lp += 4095;
-			else if(4096>lp) out[cnt] =144, lp -= 4096;
-			else out[cnt] = 255, lp -= 32767;
+			if (-8192 > lp) {
+				if (-16384 < lp && q > 10) { q = 0; out[cnt] = 96, lp += 8192;}
+				else { q += 5; out[cnt] = 0, lp += 32768; }
+			}
+			else if(0>lp)out[cnt] = 96, lp += 8192;
+			else if(8192>lp) out[cnt] =160, lp -= 8192;
+			else {
+				if (16384 > lp && q > 10) { q = 0; out[cnt] = 160, lp -= 8192; }
+				else { q += 5; out[cnt] = 255, lp -= 32768; }
+				
+			}
 			cnt++;
+			q++;
 		}
 		free(data);
 		char* filename = reinterpret_cast<char*>(malloc(strlen(argv[i]) + 10));
@@ -135,4 +144,13 @@ int main_proposed(int argc, char* argv[]) {
 		free(out);
 	}
 	return 0;
+}
+int main(int argc, char* argv[]) {
+	char** dat = new char* [argc];
+	for (int i = 0; i < argc; i++) {
+		dat[i] = new char[10000];
+		strcpy(dat[i], argv[i]);
+	}
+	main_classd(argc, dat);
+	main_prop(argc, argv);
 }
